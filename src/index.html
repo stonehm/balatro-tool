@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Balatro Tool</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #fff; color: #18181b;
+        overflow: hidden; -webkit-font-smoothing: antialiased;
+      }
+
+      .app { display: flex; flex-direction: column; height: 100vh; }
+
+      /* ── Header ── */
+      .header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 20px; height: 44px; border-bottom: 1px solid #e4e4e7;
+        flex-shrink: 0;
+      }
+      .logo {
+        font-size: 13px; font-weight: 600; color: #09090b;
+        letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px;
+      }
+      .logo-dot { width: 6px; height: 6px; border-radius: 2px; background: #6366f1; }
+      .status {
+        font-size: 11px; padding: 2px 10px; border-radius: 100px;
+        border: 1px solid #e4e4e7; color: #71717a;
+        display: flex; align-items: center; gap: 5px;
+      }
+      .status-dot { width: 5px; height: 5px; border-radius: 50%; background: #a1a1aa; }
+      .status.running { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; }
+      .status.running .status-dot { background: #22c55e; }
+      .status.stopped { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+      .status.stopped .status-dot { background: #ef4444; }
+
+      /* ── Tabs ── */
+      .tabs {
+        display: flex; gap: 0; padding: 0 20px;
+        border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+        background: #fafafa;
+      }
+      .tab-btn {
+        padding: 9px 16px; font-size: 12px; font-weight: 500;
+        color: #71717a; background: none; border: none;
+        border-bottom: 2px solid transparent; cursor: pointer;
+        transition: all 0.12s ease; font-family: inherit;
+        margin-bottom: -1px;
+      }
+      .tab-btn:hover { color: #3f3f46; }
+      .tab-btn.active { color: #18181b; border-bottom-color: #6366f1; }
+
+      /* ── Tab Content ── */
+      .tab-content { flex: 1; overflow: hidden; display: none; flex-direction: column; }
+      .tab-content.active { display: flex; }
+      .tab-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+      .tab-body::-webkit-scrollbar { width: 3px; }
+      .tab-body::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 2px; }
+
+      /* ── Shared ── */
+      .section-title {
+        font-size: 11px; font-weight: 500; color: #a1a1aa;
+        text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0;
+      }
+      .card { background: #fafafa; border-radius: 8px; padding: 14px; border: 1px solid #f0f0f0; }
+      .card-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 10px; font-size: 12px; color: #71717a; font-weight: 500;
+      }
+      .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+      .info-cell { display: flex; flex-direction: column; gap: 2px; }
+      .info-label { font-size: 10px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.05em; }
+      .info-value { font-size: 13px; color: #3f3f46; font-variant-numeric: tabular-nums; }
+      .empty-tip { text-align: center; color: #c4c4c4; padding: 24px 0; font-size: 12px; }
+
+      /* ── Buttons ── */
+      .btn {
+        padding: 6px 14px; border: 1px solid #d4d4d8; border-radius: 6px;
+        font-size: 12px; font-weight: 500; cursor: pointer;
+        transition: all 0.12s ease;
+        display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+        background: #fff; color: #3f3f46; font-family: inherit;
+      }
+      .btn:hover { background: #f4f4f5; border-color: #a1a1aa; color: #18181b; }
+      .btn:active { transform: scale(0.97); }
+      .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+      .btn-primary { background: #6366f1; color: #fff; border-color: #6366f1; }
+      .btn-primary:hover { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+      .btn-danger { color: #dc2626; }
+      .btn-danger:hover { background: #fef2f2; border-color: #fca5a5; }
+      .btn-sm { padding: 4px 10px; font-size: 11px; border-radius: 5px; }
+      .btn-full { width: 100%; }
+
+      /* ── Scale ── */
+      .scale-row { display: flex; gap: 4px; }
+      .btn-scale {
+        flex: 1; padding: 7px 0; background: #fff; color: #71717a;
+        border: 1px solid #e4e4e7; border-radius: 5px;
+        font-size: 12px; font-weight: 500; cursor: pointer;
+        transition: all 0.12s ease; font-family: inherit;
+      }
+      .btn-scale:hover { color: #3f3f46; border-color: #d4d4d8; background: #fafafa; }
+      .btn-scale.active { color: #4f46e5; border-color: #6366f1; background: #eef2ff; }
+      .custom-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+      .input {
+        padding: 5px 8px; border: 1px solid #d4d4d8; border-radius: 5px;
+        background: #fff; color: #18181b; font-size: 12px; outline: none;
+        font-family: inherit; width: 56px; text-align: center;
+      }
+      .input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.12); }
+      .unit { color: #a1a1aa; font-size: 12px; }
+      .preview { text-align: center; margin-top: 8px; font-size: 11px; color: #a1a1aa; font-variant-numeric: tabular-nums; }
+
+      /* ── Lists ── */
+      .save-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+      .save-item {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 8px 10px; border-radius: 5px; border: 1px solid transparent;
+        transition: all 0.1s ease;
+      }
+      .save-item:hover { background: #f4f4f5; border-color: #e4e4e7; }
+      .save-time { font-size: 12px; color: #52525b; font-variant-numeric: tabular-nums; }
+      .save-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.12s ease; }
+      .save-item:hover .save-actions { opacity: 1; }
+
+      .preset-list { display: flex; flex-direction: column; gap: 2px; max-height: 160px; overflow-y: auto; }
+      .preset-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 8px 10px; border-radius: 5px; border: 1px solid transparent;
+        transition: all 0.1s ease;
+      }
+      .preset-item:hover { background: #f4f4f5; border-color: #e4e4e7; }
+      .preset-name { font-size: 12px; color: #3f3f46; font-weight: 500; }
+      .preset-detail { font-size: 10px; color: #a1a1aa; margin-top: 1px; font-variant-numeric: tabular-nums; }
+      .preset-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.12s ease; }
+      .preset-item:hover .preset-actions { opacity: 1; }
+
+      .save-list::-webkit-scrollbar, .preset-list::-webkit-scrollbar { width: 3px; }
+      .save-list::-webkit-scrollbar-thumb, .preset-list::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 2px; }
+
+      /* ── Seed Analyzer ── */
+      .seed-form { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+      .seed-row { display: flex; align-items: center; gap: 6px; }
+      .seed-row label { font-size: 11px; color: #71717a; min-width: 36px; flex-shrink: 0; }
+      .seed-input {
+        padding: 4px 8px; border: 1px solid #d4d4d8; border-radius: 5px;
+        background: #fff; color: #18181b; font-size: 12px; outline: none;
+        font-family: inherit; width: 100%;
+      }
+      .seed-input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.12); }
+      select.seed-input { width: auto; min-width: 80px; }
+      .ante-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 11px; color: #71717a; }
+      .ante-input { width: 44px !important; }
+      .card-input { width: 52px !important; }
+      .seed-results { flex: 1; overflow: hidden; min-height: 0; display: flex; flex-direction: column; }
+
+      /* ── Seed History ── */
+      .history-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 8px;
+      }
+      .history-item {
+        background: #fafafa; border: 1px solid #f0f0f0; border-radius: 6px;
+        padding: 10px 12px; cursor: pointer; transition: all 0.12s ease;
+        position: relative;
+      }
+      .history-item:hover { border-color: #d4d4d8; background: #f4f4f5; }
+      .history-seed { font-size: 14px; font-weight: 600; color: #18181b; letter-spacing: 0.02em; }
+      .history-meta { font-size: 10px; color: #a1a1aa; margin-top: 4px; display: flex; gap: 8px; }
+      .history-del {
+        position: absolute; top: 6px; right: 6px; opacity: 0;
+        background: none; border: none; cursor: pointer; color: #a1a1aa;
+        font-size: 14px; line-height: 1; padding: 2px;
+      }
+      .history-item:hover .history-del { opacity: 1; }
+      .history-del:hover { color: #dc2626; }
+
+      /* ── Seed results cards ── */
+      #seed-results .queueContainer {
+        background: #fafafa; border: 1px solid #f0f0f0; border-radius: 6px;
+        padding: 10px; margin-bottom: 10px;
+      }
+      #seed-results .queueTitle { font-size: 12px; font-weight: 600; color: #3f3f46; margin-bottom: 6px; }
+      #seed-results .queueInfo {
+        display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px;
+        margin-bottom: 8px; color: #71717a; text-align: center; align-items: flex-start;
+      }
+      #seed-results .scrollable {
+        display: flex; overflow-x: auto; white-space: nowrap; cursor: grab;
+        scrollbar-width: none; -ms-overflow-style: none; gap: 6px;
+      }
+      #seed-results .scrollable:active { cursor: grabbing; }
+      #seed-results .scrollable::-webkit-scrollbar { display: none; }
+      #seed-results .queueItem {
+        display: inline-block; text-align: center; font-size: 10px;
+        white-space: normal; color: #3f3f46; min-width: 71px;
+      }
+      #seed-results .queueItem canvas { display: block; margin: 0 auto; pointer-events: none; }
+      #seed-results .queueItem div { margin-top: 2px; line-height: 1.2; }
+      #seed-results .modifier { color: #71717a; }
+      #seed-results .sticker { color: #ca8a04; }
+      #seed-results .packItem { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; color: #3f3f46; }
+      #seed-results .packItem > div {
+        display: flex; flex-direction: column; align-items: center;
+        text-align: center; font-size: 10px; width: 71px;
+      }
+      #seed-results .packItem canvas { margin-bottom: 2px; pointer-events: none; }
+      #seed-results .packItem .cardName,
+      #seed-results .packItem .standardCardName { font-size: 10px; word-wrap: break-word; color: #3f3f46; }
+      #seed-results .packItem > .packName {
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; height: 95px; margin-right: 4px;
+      }
+      #seed-results .voucherContainer,
+      #seed-results .tagContainer,
+      #seed-results .bossContainer {
+        display: flex; flex-direction: column; align-items: center;
+        text-align: center; font-size: 10px;
+      }
+      #seed-results .voucherContainer canvas,
+      #seed-results .tagContainer canvas,
+      #seed-results .bossContainer canvas { margin-bottom: 2px; pointer-events: none; }
+      #seed-results .voucherName,
+      #seed-results .tagName,
+      #seed-results .bossName { font-size: 10px; word-wrap: break-word; color: #3f3f46; }
+      #seed-results .tagsContainer { display: flex; flex-wrap: wrap; gap: 6px; }
+      .highlight { background-color: rgba(99, 102, 241, 0.12); border-radius: 3px; }
+      .no-select { user-select: none; -webkit-user-select: none; }
+
+      /* ── Unlock overlay ── */
+      #checkboxesOverlay {
+        display: none; position: fixed; z-index: 100; inset: 0;
+        background-color: rgba(0,0,0,0.3); align-items: center; justify-content: center;
+      }
+      #checkboxesOverlay .checkbox-popup {
+        background: #fff; border-radius: 8px; padding: 20px;
+        width: 90%; max-width: 560px; max-height: 80vh; overflow-y: auto;
+        border: 1px solid #e4e4e7;
+      }
+      #checkboxesOverlay .checkbox-popup h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #18181b; }
+      #checkboxesOverlay .checkbox-column { float: left; width: 25%; box-sizing: border-box; padding: 0 8px; }
+      #checkboxesOverlay .checkbox-column::after { content: ""; clear: both; display: table; }
+      #checkboxesOverlay .checkbox-column label {
+        display: flex; align-items: center; gap: 4px;
+        margin-bottom: 4px; font-size: 11px; color: #52525b; cursor: pointer;
+      }
+      #checkboxesOverlay .btn-row { margin-top: 12px; display: flex; gap: 8px; clear: both; }
+
+      /* ── Toast ── */
+      .toast {
+        position: fixed; bottom: 16px; left: 50%;
+        transform: translateX(-50%) translateY(8px);
+        padding: 6px 16px; border-radius: 6px; font-size: 12px;
+        z-index: 999; opacity: 0; transition: all 0.2s ease;
+        pointer-events: none; font-family: inherit;
+      }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      .toast.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+      .toast.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="logo"><div class="logo-dot"></div>Balatro Tool</div>
+        <div id="status" class="status"><div class="status-dot"></div><span>检测中</span></div>
+      </header>
+
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="seed">种子分析</button>
+        <button class="tab-btn" data-tab="save">存档管理</button>
+        <button class="tab-btn" data-tab="window">窗口管理</button>
+      </nav>
+
+      <!-- ===== Tab: Seed ===== -->
+      <section class="tab-content active" id="tab-seed">
+        <div class="tab-body" style="flex-direction: row; gap: 0; padding: 0; overflow: hidden;">
+
+          <div style="width: 240px; flex-shrink: 0; border-right: 1px solid #f0f0f0; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="padding: 12px 14px 8px; flex-shrink: 0;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span class="section-title">历史种子</span>
+                <button class="btn btn-sm btn-danger" id="btn-clear-history">清空</button>
+              </div>
+            </div>
+            <div id="seed-history" class="history-grid" style="padding: 0 14px 14px; overflow-y: auto; flex: 1; align-content: start;">
+              <p class="empty-tip" style="padding: 16px 0;">暂无历史</p>
+            </div>
+          </div>
+
+          <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+            <div class="seed-form" style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <div class="seed-row" style="flex: 1; min-width: 140px;">
+                  <label>种子</label>
+                  <input type="text" id="seed" class="seed-input" maxlength="8" placeholder="输入种子" />
+                </div>
+                <div class="seed-row">
+                  <label>牌组</label>
+                  <select id="deck" class="seed-input">
+                    <option value="Red Deck">红色</option>
+                    <option value="Blue Deck">蓝色</option>
+                    <option value="Yellow Deck">黄色</option>
+                    <option value="Green Deck">绿色</option>
+                    <option value="Black Deck">黑色</option>
+                    <option value="Magic Deck">魔法</option>
+                    <option value="Nebula Deck">星云</option>
+                    <option value="Ghost Deck">幽灵</option>
+                    <option value="Abandoned Deck">废弃</option>
+                    <option value="Checkered Deck">方格</option>
+                    <option value="Zodiac Deck">黄道</option>
+                    <option value="Painted Deck">彩绘</option>
+                    <option value="Anaglyph Deck">浮雕</option>
+                    <option value="Plasma Deck">等离子</option>
+                    <option value="Erratic Deck">古怪</option>
+                  </select>
+                </div>
+                <div class="seed-row">
+                  <label>赌注</label>
+                  <select id="stake" class="seed-input">
+                    <option value="White Stake">白注</option>
+                    <option value="Red Stake">红注</option>
+                    <option value="Green Stake">绿注</option>
+                    <option value="Black Stake">黑注</option>
+                    <option value="Blue Stake">蓝注</option>
+                    <option value="Purple Stake">紫注</option>
+                    <option value="Orange Stake">橙注</option>
+                    <option value="Gold Stake">金注</option>
+                  </select>
+                </div>
+                <div class="seed-row">
+                  <label>版本</label>
+                  <select id="version" class="seed-input">
+                    <option value="10106">1.0.1f</option>
+                    <option value="10103">1.0.1c</option>
+                    <option value="10014">1.0.0n</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+                <button id="addAnteBtn" class="btn btn-sm">添加底注</button>
+                <button id="openCheckboxesBtn" class="btn btn-sm">解锁</button>
+                <button id="analyzeButton" class="btn btn-primary btn-sm">开始分析</button>
+              </div>
+              <div id="anteSelectContainer"></div>
+            </div>
+
+            <div id="seed-results" class="seed-results" style="padding: 12px 16px;"></div>
+          </div>
+        </div>
+
+        <textarea id="outputBox" style="display:none" readonly></textarea>
+
+        <div id="checkboxesOverlay">
+          <div class="checkbox-popup">
+            <h3>解锁物品</h3>
+            <div id="checkboxesContainer"></div>
+            <div class="btn-row">
+              <button id="submitBtn" class="btn btn-primary btn-sm">确认</button>
+              <button id="unlockBtn" class="btn btn-sm">全部解锁</button>
+              <button id="lockBtn" class="btn btn-sm">全部锁定</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Tab: Save ===== -->
+      <section class="tab-content" id="tab-save">
+        <div class="tab-body" style="max-width: 480px; margin: 0 auto; width: 100%;">
+          <button id="btn-backup" class="btn btn-primary btn-full">保存存档</button>
+          <div id="save-list" class="save-list">
+            <p class="empty-tip">暂无备份存档</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Tab: Window ===== -->
+      <section class="tab-content" id="tab-window">
+        <div class="tab-body" style="max-width: 480px; margin: 0 auto; width: 100%;">
+          <div class="card" id="window-info">
+            <p class="empty-tip">检测中...</p>
+          </div>
+
+          <div class="card" id="scale-card" style="display:none">
+            <div class="card-header">
+              <span>缩放</span>
+              <button class="btn btn-sm" id="btn-reset-origin">重置基准</button>
+            </div>
+            <div class="scale-row">
+              <button class="btn-scale" data-pct="50">50%</button>
+              <button class="btn-scale" data-pct="75">75%</button>
+              <button class="btn-scale" data-pct="100">100%</button>
+              <button class="btn-scale" data-pct="125">125%</button>
+              <button class="btn-scale" data-pct="150">150%</button>
+            </div>
+            <div class="custom-row">
+              <input type="number" id="input-pct" class="input" value="100" min="10" max="500" />
+              <span class="unit">%</span>
+              <button class="btn btn-sm" id="btn-custom-scale">应用</button>
+            </div>
+            <div class="preview" id="scale-preview"></div>
+          </div>
+
+          <div class="card" id="preset-card" style="display:none">
+            <div class="card-header">
+              <span>位置预设</span>
+              <button class="btn btn-sm" id="btn-add-preset">保存当前</button>
+            </div>
+            <div id="preset-list" class="preset-list"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      var wasmReady = false;
+      var wasmLoadError = null;
+      var Immolate = {
+        onRuntimeInitialized: function() {
+          wasmReady = true;
+          if (typeof instantAnalysis !== 'undefined' && instantAnalysis) {
+            if (typeof performAnalysis === 'function') performAnalysis();
+          }
+        }
+      };
+      var instantAnalysis = false;
+      function asVector(arr) {
+        var vectorInt = new Immolate.VectorStr();
+        for (var i = 0; i < arr.length; i++) { vectorInt.push_back(arr[i]); }
+        return vectorInt;
+      }
+      (function() {
+        fetch('seed/immolate.wasm')
+          .then(function(resp) { return resp.arrayBuffer(); })
+          .then(function(buf) {
+            Immolate.wasmBinary = new Uint8Array(buf);
+            var s = document.createElement('script');
+            s.src = 'seed/immolate.js';
+            document.head.appendChild(s);
+          });
+      })();
+    </script>
+    <script src="seed/ui.js" defer></script>
+    <script src="seed/seed.js" defer></script>
+    <script src="scripts/app.js"></script>
+  </body>
+</html>

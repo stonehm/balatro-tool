@@ -1,0 +1,28 @@
+{
+  "productName": "Balatro Tool",
+  "version": "1.0.0",
+  "identifier": "com.balatro-tool.app",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Balatro Tool",
+        "width": 860,
+        "height": 560,
+        "resizable": true,
+        "center": true,
+        "decorations": true,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false
+  }
+}
