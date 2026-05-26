@@ -5,6 +5,7 @@ const $$ = (sel) => document.querySelectorAll(sel);
 
 let toastTimer = null;
 let currentWindow = null;
+let lastGameRunning = false;
 let originW = 0, originH = 0, originX = 0, originY = 0;
 let originSaved = false;
 let currentPct = 100;
@@ -40,6 +41,7 @@ function initTabs() {
       btn.classList.add("active");
       var tab = document.getElementById("tab-" + btn.dataset.tab);
       if (tab) tab.classList.add("active");
+      if (btn.dataset.tab === "window") loadBalatroWindow();
     });
   });
 }
@@ -324,6 +326,10 @@ async function checkGameStatus() {
     var running = await invoke("check_game_running");
     el.innerHTML = '<div class="status-dot"></div><span>' + (running ? "游戏运行中" : "游戏未运行") + '</span>';
     el.className = "status " + (running ? "running" : "stopped");
+    if (running && !lastGameRunning) {
+      loadBalatroWindow();
+    }
+    lastGameRunning = running;
   } catch (e) {
     el.innerHTML = '<div class="status-dot"></div><span>检测失败</span>';
     el.className = "status stopped";
