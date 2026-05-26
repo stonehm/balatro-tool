@@ -43,7 +43,8 @@ pub fn list_backups() -> Result<Vec<SaveEntry>, AppError> {
             }
             let parts: Vec<&str> = name.split('.').collect();
             let ts_ms: i64 = parts.get(2)?.parse().ok()?;
-            let dt = DateTime::from_timestamp_millis(ts_ms)?;
+            let dt = DateTime::from_timestamp_millis(ts_ms)?
+                .with_timezone(&chrono::Local);
             Some(SaveEntry {
                 index: 0,
                 timestamp_ms: ts_ms,
@@ -78,7 +79,7 @@ pub fn create_backup() -> Result<SaveEntry, AppError> {
         }
     }
 
-    let now = chrono::Utc::now();
+    let now = chrono::Local::now();
     let ts_ms = now.timestamp_millis();
     let backup_name = format!("{}.{}", SAVE_FILE_NAME, ts_ms);
     let backup_path = backup_dir.join(&backup_name);
